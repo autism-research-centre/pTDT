@@ -1,24 +1,36 @@
-#Read the files
-library(data.table)
+### PTDT script
+### Author: Varun Warrier
 
+
+### Paper: https://www.nature.com/articles/ng.3863#methods
+
+###Formulas
+###PGSmidparent = (PGSfather + PGSmother)/2 ; 
+###pTDT deviation is (PGSchild - PGSmidparent)/SD(PGSmidparent);
+###tPDT = mean (pTDT deviation)/ (SD(pTDT deviation)/sqrt(N))
+
+
+## STEP 1: Read files and merge
+
+library(data.table)
 
 #First, read the fam files
 Mother = fread("~/SFARI/mothersdata.txt", header= T)
-Father = fread("~/SFARI/mothersdata.txt", header= T)
+Father = read.table("~/SFARI/fathersdata.txt", header= T)
 Cases = fread("~/SFARI/cases.txt", header= T)
 Siblings = fread("~/SFARI/siblings.txt", header= T)
 
 #Next, read the prs scores
-mv3 = fread("~/ALSPAC/PRSice2results/results_SSC_Mv3/SSC_1Mv3_friendshipmtagprsice.all.score", header = TRUE)
-mv1 = fread("~/ALSPAC/PRSice2results/results_SSC_Mv3/SSC_1Mv1_friendshipmtagprsice.all.score", header = TRUE)
-Omni = fread("~/ALSPAC/PRSice2results/results_SSC_Omni/SSC_Omni_friendshipmtagprsice.all.score", header = TRUE)
+PRS = fread("~/ALSPAC/PRSice2results/Sfarimergedfriendshipmtagprsice.all.score", header = TRUE)
 
-merged = rbind(Omni, mv1)
-merged = rbind(merged, mv3)
+#Create merged files
+fatherpgs = merge(Father, PRS, by = "IID")
+motherpgs = merge(Mother, PRS, by = "IID")
+casespgs = merge(Cases, PRS, by = "IID")
 
-fatherpgs = merge(Father, merged)
-motherpgs = merge(Mother, merged)
-parentpgs = merge(motherpgs, fatherpgs, by = "FID")
+##Step 2: Calculate mid-parent PGS and SD of midparent PGS
+
+parentpgs = merge(motherpgs, fatherpgs, by = "FID.x")
 parentpgs$midparent8 = (parentpgs$`1.000000.x` + parentpgs$`1.000000.y`)/2
 parentpgs$midparent7 = (parentpgs$`0.750000.x` + parentpgs$`0.750000.y`)/2
 parentpgs$midparent6 = (parentpgs$`0.500000.x` + parentpgs$`0.500000.y`)/2
@@ -28,9 +40,7 @@ parentpgs$midparent3 = (parentpgs$`0.010000.x` + parentpgs$`0.010000.y`)/2
 parentpgs$midparent2 = (parentpgs$`0.001000.x` + parentpgs$`0.001000.y`)/2
 parentpgs$midparent1 = (parentpgs$`0.000100.x` + parentpgs$`0.000100.y`)/2
 
-casespgs = merge(Cases, merged)
-triopgs = merge(parentpgs, casespgs, by = "FID")
-
+triopgs = merge(parentpgs, casespgs, by = "FID.x")
 
 Sd1 = sd(triopgs$midparent1)
 Sd2 = sd(triopgs$midparent2)
@@ -41,6 +51,7 @@ Sd6 = sd(triopgs$midparent6)
 Sd7 = sd(triopgs$midparent7)
 Sd8 = sd(triopgs$midparent8)
 
+## Step 3: Calculate pTDT deviation
 triopgs$diff8 = (triopgs$`1.000000` - triopgs$midparent8)/Sd8
 triopgs$diff7 = (triopgs$`0.750000` - triopgs$midparent7)/Sd7
 triopgs$diff6 = (triopgs$`0.500000` - triopgs$midparent6)/Sd6
@@ -50,14 +61,18 @@ triopgs$diff3 = (triopgs$`0.010000` - triopgs$midparent3)/Sd3
 triopgs$diff2 = (triopgs$`0.001000` - triopgs$midparent2)/Sd2
 triopgs$diff1 = (triopgs$`0.000100` - triopgs$midparent1)/Sd1
 
-One = mean(triopgs$diff1)/(sd(triopgs$diff1)/47.2334627145)
-Two = mean(triopgs$diff2)/(sd(triopgs$diff2)/47.2334627145)
-Three = mean(triopgs$diff3)/(sd(triopgs$diff3)/47.2334627145)
-Four = mean(triopgs$diff4)/(sd(triopgs$diff4)/47.2334627145)
-Five = mean(triopgs$diff5)/(sd(triopgs$diff5)/47.2334627145)
-Six = mean(triopgs$diff6)/(sd(triopgs$diff6)/47.2334627145)
-Seven = mean(triopgs$diff7)/(sd(triopgs$diff7)/47.2334627145)
-Eight = mean(triopgs$diff8)/(sd(triopgs$diff8)/47.2334627145)
+
+## Step 4: Calculate the T score for pTDT deviation
+N = sqrt(nrow(triopgs))
+
+One = mean(triopgs$diff1)/(sd(triopgs$diff1)/N)
+Two = mean(triopgs$diff2)/(sd(triopgs$diff2)/N)
+Three = mean(triopgs$diff3)/(sd(triopgs$diff3)/N)
+Four = mean(triopgs$diff4)/(sd(triopgs$diff4)/N)
+Five = mean(triopgs$diff5)/(sd(triopgs$diff5)/N)
+Six = mean(triopgs$diff6)/(sd(triopgs$diff6)/N)
+Seven = mean(triopgs$diff7)/(sd(triopgs$diff7)/N)
+Eight = mean(triopgs$diff8)/(sd(triopgs$diff8)/N)
 
 One
 Two
